@@ -1,0 +1,36 @@
+1. Додати в існуючий ряд з кнопкою "Редагувати":
+``` python
+# Кнопка статистики
+statistic_button = ttk.Button(input_frame, text="Статистика", command=self.get_pressure_statistics)
+statistic_button.grid(row=1, column=7, padx=10)
+```
+--------------------------------------------------------------------------------------------
+1. Створити окремий фрейм для кнопок:
+
+# Створюємо фрейм для кнопок
+button_frame = ttk.Frame(input_frame)
+button_frame.grid(row=2, column=0, columnspan=8, pady=5)
+
+# Розміщуємо кнопки у фреймі
+save_button = ttk.Button(button_frame, text="Зберегти", command=self.save_pressure)
+save_button.pack(side='left', padx=5)
+
+edit_button = ttk.Button(button_frame, text="Редагувати", command=self.edit_selected)
+edit_button.pack(side='left', padx=5)
+
+statistic_button = ttk.Button(button_frame, text="Статистика", command=self.get_pressure_statistics)
+statistic_button.pack(side='left', padx=5)
+----------------------------------------------------------------------------------------------------------
+
+1. Або створити окремий фрейм для статистики:
+``` python
+
+# Фрейм для статистики
+stats_frame = ttk.LabelFrame(self.root, text="Статистика", padding=10)
+stats_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+
+statistic_button = ttk.Button(stats_frame, text="Показати статистику", command=self.get_pressure_statistics)
+statistic_button.pack(pady=5)
+```
+Який варіант обрати - залежить від того, як ви хочете організувати інтерфейс.
+Другий варіант (з окремим фреймом для кнопок) зазвичай виглядає найбільш організовано та професійно.
