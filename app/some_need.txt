@@ -1,36 +1,61 @@
-1. Додати в існуючий ряд з кнопкою "Редагувати":
+У такому випадку краще використати власне діалогове вікно для повідомлень. Ось як можна це зробити:
 ``` python
-# Кнопка статистики
-statistic_button = ttk.Button(input_frame, text="Статистика", command=self.get_pressure_statistics)
-statistic_button.grid(row=1, column=7, padx=10)
+def show_info_dialog(self, title, message):
+    dialog = tk.Toplevel(self.root)
+    dialog.title(title)
+    dialog.geometry("300x150")
+
+    # Зробити вікно модальним
+    dialog.transient(self.root)
+    dialog.grab_set()
+
+    # Налаштування тексту повідомлення
+    label = ttk.Label(dialog, text=message, font=('Comic Sans MS', 13, 'bold'), wraplength=250)
+    label.pack(expand=True, pady=20)
+
+    # Кнопка OK
+    ok_button = ttk.Button(dialog, text="OK", command=dialog.destroy)
+    ok_button.pack(pady=10)
+
+    # Центрування вікна відносно головного вікна
+    dialog.geometry("+{}+{}".format(
+        self.root.winfo_x() + self.root.winfo_width()//2 - 150,
+        self.root.winfo_y() + self.root.winfo_height()//2 - 75
+    ))
+
+    # Чекаємо закриття вікна
+    self.root.wait_window(dialog)
 ```
---------------------------------------------------------------------------------------------
-1. Створити окремий фрейм для кнопок:
-
-# Створюємо фрейм для кнопок
-button_frame = ttk.Frame(input_frame)
-button_frame.grid(row=2, column=0, columnspan=8, pady=5)
-
-# Розміщуємо кнопки у фреймі
-save_button = ttk.Button(button_frame, text="Зберегти", command=self.save_pressure)
-save_button.pack(side='left', padx=5)
-
-edit_button = ttk.Button(button_frame, text="Редагувати", command=self.edit_selected)
-edit_button.pack(side='left', padx=5)
-
-statistic_button = ttk.Button(button_frame, text="Статистика", command=self.get_pressure_statistics)
-statistic_button.pack(side='left', padx=5)
-----------------------------------------------------------------------------------------------------------
-
-1. Або створити окремий фрейм для статистики:
+Потім замініть всі виклики `messagebox.showinfo` на:
 ``` python
-
-# Фрейм для статистики
-stats_frame = ttk.LabelFrame(self.root, text="Статистика", padding=10)
-stats_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
-
-statistic_button = ttk.Button(stats_frame, text="Показати статистику", command=self.get_pressure_statistics)
-statistic_button.pack(pady=5)
+self.show_info_dialog("Успіх", "Дані успішно збережено!")
 ```
-Який варіант обрати - залежить від того, як ви хочете організувати інтерфейс.
-Другий варіант (з окремим фреймом для кнопок) зазвичай виглядає найбільш організовано та професійно.
+Це створить власне діалогове вікно з більшим шрифтом та кращим контролем над виглядом.
+Також можна зробити аналогічні методи для помилок та попереджень:
+``` python
+def show_error_dialog(self, title, message):
+    dialog = tk.Toplevel(self.root)
+    dialog.title(title)
+    dialog.geometry("300x150")
+    dialog.transient(self.root)
+    dialog.grab_set()
+
+    label = ttk.Label(dialog, text=message, font=('Comic Sans MS', 13, 'bold'),
+                      wraplength=250, foreground='red')
+    label.pack(expand=True, pady=20)
+
+    ok_button = ttk.Button(dialog, text="OK", command=dialog.destroy)
+    ok_button.pack(pady=10)
+
+    dialog.geometry("+{}+{}".format(
+        self.root.winfo_x() + self.root.winfo_width()//2 - 150,
+        self.root.winfo_y() + self.root.winfo_height()//2 - 75
+    ))
+
+    self.root.wait_window(dialog)
+```
+І замінити виклики `messagebox.showerror` на:
+``` python
+self.show_error_dialog("Помилка", "Будь ласка, введіть коректні числові значення")
+```
+

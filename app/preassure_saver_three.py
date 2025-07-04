@@ -11,7 +11,8 @@ class PressureApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Моніторинг тиску")
-        self.root.geometry("650x400")
+        self.root.geometry("750x600")
+
 
         # Підключення до БД
         self.conn = sqlite3.connect('pressure3.db')
@@ -24,7 +25,7 @@ class PressureApp:
         self.update_table()
 
         # Перевірка критичних показників при запуску
-        self.check_weekly_critical_pressure()
+        #self.check_weekly_critical_pressure()
 
 
     def create_table(self):
@@ -41,19 +42,32 @@ class PressureApp:
 
 
     def create_widgets(self):
+
         # Налаштування стилю
         style = ttk.Style()
-        self.root.option_add('*Font', ('Comic Sans MS', 11, 'bold'))
+        self.root.option_add('*Font', ('Comic Sans MS', 14, 'bold'))
+        self.root.option_add('*Dialog.msg.font', ('Comic Sans MS', 13, 'bold'))
         style.configure('Treeview', font=('Comic Sans MS', 10))  # Для даних у таблиці
         style.configure('Treeview.Heading', font=('Comic Sans MS', 11, 'bold'))  # Для заголовків таблиці
+        style.configure('TButton', font=('Comic Sans MS', 10))  # Для кнопок
+        style.configure('TLabelframe.Label', font=('Comic Sans MS', 10)) # шрифт для тексту заголовку
 
         # Фрейм для введення даних
-        input_frame = ttk.LabelFrame(self.root, text="Введення даних", padding=10)
+        input_frame = ttk.LabelFrame(self.root, text="Введення даних",  padding=10)
         input_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        style.configure('TLabelframe.Label', font=('Comic Sans MS', 10))
 
         # Створюємо фрейм для кнопок
         button_frame = ttk.Frame(input_frame)
         button_frame.grid(row=2, column=0, columnspan=8, pady=5)
+
+        # Створюємо фрейм для кнопок статистики
+        stat_button_frame = ttk.Frame(input_frame)
+        stat_button_frame.grid(row=3, column=0, columnspan=8, pady=5)
+
+        # Створюємо фрейм для кнопок -----------
+        stat2_button_frame = ttk.Frame(input_frame)
+        stat2_button_frame.grid(row=4, column=0, columnspan=8, pady=5)
 
         # Поля введення з шрифтом
         ttk.Label(input_frame, text="Систолічний:").grid(row=0, column=0, padx=5) # рядок, колонка , відстань по У
@@ -62,9 +76,9 @@ class PressureApp:
         self.systolic_entry.grid(row=0, column=1, padx=5)  # рохміщення єлемента в сітці грід
 
         ttk.Label(input_frame, text="Діастолічний:").grid(row=0, column=2, padx=5)
-        self.diastolic_var = tk.StringVar()
-        self.diastolic_entry = ttk.Entry(input_frame, width=5, textvariable=self.diastolic_var)
-        self.diastolic_entry.grid(row=0, column=3, padx=5)
+        self.diastolic_var = tk.StringVar()  # змінна для збереження введеного тексту
+        self.diastolic_entry = ttk.Entry(input_frame, width=5, textvariable=self.diastolic_var) #Створюємо поле введення для пульсу
+        self.diastolic_entry.grid(row=0, column=3, padx=5) # Розміщуємо поле введення у вікні
 
         ttk.Label(input_frame, text="Пульс:").grid(row=0, column=4, padx=5)
         self.pulse_var = tk.StringVar()
@@ -84,8 +98,26 @@ class PressureApp:
         edit_button = ttk.Button(button_frame, text="Редагувати", command=self.edit_selected)
         edit_button.pack(side='left', padx=5)
 
-        statistic_button = ttk.Button(button_frame, text="Статистика", command=self.get_pressure_statistics)
+        #statistic_button = ttk.Button(button_frame, text="Статистика", command=self.get_pressure_statistics)
+        #statistic_button.pack(side='left', padx=5)
+
+        statistic_button = ttk.Button(stat_button_frame, text="Загальна статистика",
+                                      command=lambda: self.get_pressure_statistics('all'))
         statistic_button.pack(side='left', padx=5)
+
+        week_stat_button = ttk.Button(stat_button_frame, text="Статистика за тиждень",
+                                      command=lambda: self.get_pressure_statistics('week'))
+        week_stat_button.pack(side='left', padx=5)
+
+        month_stat_button = ttk.Button(stat_button_frame, text="Статистика за місяць",
+                                       command=lambda: self.get_pressure_statistics('month'))
+        month_stat_button.pack(side='left', padx=5)
+
+
+        stat_button2 = ttk.Button(stat2_button_frame, text="Найбільший систолічний",
+                                       command=lambda: self.get_biggest_s())
+        stat_button2.pack(side='left', padx=5)
+
 
         # Таблиця для відображення даних
         table_frame = ttk.LabelFrame(self.root, text="Історія вимірювань", padding=10)
@@ -327,12 +359,32 @@ class PressureApp:
                 )
                 break
 
-
-    def get_pressure_statistics(self):
+    # статистика за весь час (за замовч), за тиждень, за місяць
+    def get_pressure_statistics(self, period=None):
         cursor = self.conn.cursor()
-        cursor.execute('SELECT pressure FROM pressure_records')
+        #cursor.execute('SELECT pressure FROM pressure_records')
+
+        # SQL запити для різних періодів, словник SQL запитів
+        sql_queries = {
+            'week': '''
+                   SELECT pressure 
+                   FROM pressure_records 
+                   WHERE date >= datetime('now', '-7 days')
+               ''',
+            'month': '''
+                   SELECT pressure 
+                   FROM pressure_records 
+                   WHERE date >= datetime('now', '-30 days')
+               ''',
+            'all': 'SELECT pressure FROM pressure_records'
+        }
+
+        # Вибираємо потрібний запит
+        # sql_queries['all'] - це значення за замовчуванням в методі get() якщо значення не передано
+        query = sql_queries.get(period, sql_queries['all'])
+        cursor.execute(query)
+
         records = cursor.fetchall() # [('150/80/77',), ('125/85/90',), ('125/85/75',)....] масив кортеджів
-        #print(records)
 
         total = len(records)
         critical = 0
@@ -344,7 +396,14 @@ class PressureApp:
 
         if total > 0:
             percentage = (critical / total) * 100
-            message = (f"Загальна статистика:\n"
+            # знову словник для message
+            period_text = {
+                'week': 'за тиждень',
+                'month': 'за місяць',
+                'all': 'за весь період'
+            }.get(period, 'за весь період')
+
+            message = (f"Статистика {period_text}:\n"
                        f"Загальна кількість вимірювань: {total}\n"
                        f"Кількість критичних показників: {critical}\n"
                        f"Відсоток критичних показників: {percentage:.1f}%\n")
@@ -355,6 +414,20 @@ class PressureApp:
             messagebox.showinfo("Статистика тиску", message)
         else:
             messagebox.showinfo("Статистика тиску", "Немає записів для аналізу")
+
+
+    def get_biggest_s(self):
+        cursor = self.conn.cursor()
+        sql_query = '''SELECT date, pressure 
+        FROM pressure_records 
+        ORDER BY CAST(substr(pressure, 1, instr(pressure, '/') - 1) AS INTEGER) DESC
+         '''
+
+        cursor.execute(sql_query)
+        #res = cursor.fetchall()
+        res = cursor.fetchone()
+        messagebox.showinfo("Найбільший ситоличний", str(res))
+
 
 
     def __del__(self):
