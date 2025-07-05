@@ -1,61 +1,32 @@
-У такому випадку краще використати власне діалогове вікно для повідомлень. Ось як можна це зробити:
-``` python
-def show_info_dialog(self, title, message):
-    dialog = tk.Toplevel(self.root)
-    dialog.title(title)
-    dialog.geometry("300x150")
+Існує дві основні різниці між цими підходами:
+1. **Без lambda** (`command=self.get_pressure_extremes`):
 
-    # Зробити вікно модальним
-    dialog.transient(self.root)
-    dialog.grab_set()
+- Передає пряме посилання на метод
+- Метод буде викликаний, коли кнопка буде натиснута
+- Використовується, коли метод не потребує параметрів
+- Більш ефективний з точки зору пам'яті
 
-    # Налаштування тексту повідомлення
-    label = ttk.Label(dialog, text=message, font=('Comic Sans MS', 13, 'bold'), wraplength=250)
-    label.pack(expand=True, pady=20)
+1. **З lambda** (`command=lambda: self.get_pressure_extremes()`):
 
-    # Кнопка OK
-    ok_button = ttk.Button(dialog, text="OK", command=dialog.destroy)
-    ok_button.pack(pady=10)
+- Створює анонімну функцію, яка викликає метод
+- Дозволяє передавати параметри методу
+- Дозволяє виконувати додаткову логіку перед викликом методу
+- Споживає трохи більше пам'яті
 
-    # Центрування вікна відносно головного вікна
-    dialog.geometry("+{}+{}".format(
-        self.root.winfo_x() + self.root.winfo_width()//2 - 150,
-        self.root.winfo_y() + self.root.winfo_height()//2 - 75
-    ))
+Приклади використання:
 
-    # Чекаємо закриття вікна
-    self.root.wait_window(dialog)
-```
-Потім замініть всі виклики `messagebox.showinfo` на:
-``` python
-self.show_info_dialog("Успіх", "Дані успішно збережено!")
-```
-Це створить власне діалогове вікно з більшим шрифтом та кращим контролем над виглядом.
-Також можна зробити аналогічні методи для помилок та попереджень:
-``` python
-def show_error_dialog(self, title, message):
-    dialog = tk.Toplevel(self.root)
-    dialog.title(title)
-    dialog.geometry("300x150")
-    dialog.transient(self.root)
-    dialog.grab_set()
+# Без параметрів - обидва варіанти працюють однаково
+button1 = ttk.Button(frame, text="Кнопка", command=self.my_method)
+button2 = ttk.Button(frame, text="Кнопка", command=lambda: self.my_method())
 
-    label = ttk.Label(dialog, text=message, font=('Comic Sans MS', 13, 'bold'),
-                      wraplength=250, foreground='red')
-    label.pack(expand=True, pady=20)
+# З параметрами - потрібна lambda
+button3 = ttk.Button(frame, text="Кнопка", command=lambda: self.my_method("параметр"))
 
-    ok_button = ttk.Button(dialog, text="OK", command=dialog.destroy)
-    ok_button.pack(pady=10)
+# Виклик кількох методів - потрібна lambda
+button4 = ttk.Button(frame, text="Кнопка",
+                    command=lambda: [self.method1(), self.method2()])
+------------------------------------------------------------------------------------------------------------------------
 
-    dialog.geometry("+{}+{}".format(
-        self.root.winfo_x() + self.root.winfo_width()//2 - 150,
-        self.root.winfo_y() + self.root.winfo_height()//2 - 75
-    ))
 
-    self.root.wait_window(dialog)
-```
-І замінити виклики `messagebox.showerror` на:
-``` python
-self.show_error_dialog("Помилка", "Будь ласка, введіть коректні числові значення")
-```
+
 

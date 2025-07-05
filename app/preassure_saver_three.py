@@ -3,19 +3,24 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-
-
+from config.message_config import MessageConfig
+from service.service import PressureService
 
 
 class PressureApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Моніторинг тиску")
-        self.root.geometry("750x600")
-
+        self.root.title("Моніторинг тиску") # назва вікна
+        self.root.geometry("750x600") # розмір по координаті х і у
+        self.root.attributes('-alpha', 0.85) # прозорість
+        self.message_config = MessageConfig(root) # не стандартне налаштування вікна
 
         # Підключення до БД
         self.conn = sqlite3.connect('pressure3.db')
+
+        # Створення екземпляру сервісного класу
+        self.service = PressureService(self.conn, self.message_config)
+
         self.create_table()
 
         # Створення віджетів
@@ -25,7 +30,7 @@ class PressureApp:
         self.update_table()
 
         # Перевірка критичних показників при запуску
-        #self.check_weekly_critical_pressure()
+        #self.service.check_weekly_critical_pressure()
 
 
     def create_table(self):
@@ -45,8 +50,8 @@ class PressureApp:
 
         # Налаштування стилю
         style = ttk.Style()
-        self.root.option_add('*Font', ('Comic Sans MS', 14, 'bold'))
-        self.root.option_add('*Dialog.msg.font', ('Comic Sans MS', 13, 'bold'))
+        self.root.option_add('*Font', ('Comic Sans MS', 11, 'bold'))
+        #self.root.option_add('*Dialog.msg.font', ('Comic Sans MS', 13, 'bold'))
         style.configure('Treeview', font=('Comic Sans MS', 10))  # Для даних у таблиці
         style.configure('Treeview.Heading', font=('Comic Sans MS', 11, 'bold'))  # Для заголовків таблиці
         style.configure('TButton', font=('Comic Sans MS', 10))  # Для кнопок
@@ -57,17 +62,16 @@ class PressureApp:
         input_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
         style.configure('TLabelframe.Label', font=('Comic Sans MS', 10))
 
+
+
         # Створюємо фрейм для кнопок
         button_frame = ttk.Frame(input_frame)
+
         button_frame.grid(row=2, column=0, columnspan=8, pady=5)
 
         # Створюємо фрейм для кнопок статистики
         stat_button_frame = ttk.Frame(input_frame)
         stat_button_frame.grid(row=3, column=0, columnspan=8, pady=5)
-
-        # Створюємо фрейм для кнопок -----------
-        stat2_button_frame = ttk.Frame(input_frame)
-        stat2_button_frame.grid(row=4, column=0, columnspan=8, pady=5)
 
         # Поля введення з шрифтом
         ttk.Label(input_frame, text="Систолічний:").grid(row=0, column=0, padx=5) # рядок, колонка , відстань по У
@@ -102,21 +106,21 @@ class PressureApp:
         #statistic_button.pack(side='left', padx=5)
 
         statistic_button = ttk.Button(stat_button_frame, text="Загальна статистика",
-                                      command=lambda: self.get_pressure_statistics('all'))
+                                      command=lambda: self.service.get_pressure_statistics('all'))
         statistic_button.pack(side='left', padx=5)
 
         week_stat_button = ttk.Button(stat_button_frame, text="Статистика за тиждень",
-                                      command=lambda: self.get_pressure_statistics('week'))
+                                      command=lambda: self.service.get_pressure_statistics('week'))
         week_stat_button.pack(side='left', padx=5)
 
         month_stat_button = ttk.Button(stat_button_frame, text="Статистика за місяць",
-                                       command=lambda: self.get_pressure_statistics('month'))
+                                       command=lambda: self.service.get_pressure_statistics('month'))
         month_stat_button.pack(side='left', padx=5)
 
 
-        stat_button2 = ttk.Button(stat2_button_frame, text="Найбільший систолічний",
-                                       command=lambda: self.get_biggest_s())
-        stat_button2.pack(side='left', padx=5)
+        ex_button = ttk.Button(stat_button_frame, text="Екстремальні показники",
+                                  command=self.service.get_pressure_extremes)
+        ex_button.pack(side='left', padx=5)
 
 
         # Таблиця для відображення даних
@@ -331,102 +335,6 @@ class PressureApp:
             pressure_formatted = f"{systolic}/{diastolic}"
             self.tree.insert('', 'end', values=(id_, formatted_date, pressure_formatted, pulse, notes))
 
-
-    def check_weekly_critical_pressure(self):
-        cursor = self.conn.cursor()
-        # Отримуємо записи за останній тиждень
-        cursor.execute('''
-            SELECT pressure, date 
-            FROM pressure_records 
-            WHERE date >= datetime('now', '-7 days')
-            ORDER BY date DESC
-        ''')
-
-        critical_count = 0
-        for pressure, date in cursor.fetchall():
-            sys, dia, pulse = map(int, pressure.split('/'))
-
-            # Перевіряємо критичні показники
-            if sys > 180 or dia > 120 or pulse > 140:
-                critical_count += 1
-
-            # Якщо знайдено 2 або більше критичних записів
-            if critical_count >= 2:
-                messagebox.showwarning(
-                    "Важливе попередження",
-                    "За останній тиждень у вас було декілька випадків підвищеного тиску/пульсу. "
-                    "Наполегливо рекомендуємо звернутися до лікаря!"
-                )
-                break
-
-    # статистика за весь час (за замовч), за тиждень, за місяць
-    def get_pressure_statistics(self, period=None):
-        cursor = self.conn.cursor()
-        #cursor.execute('SELECT pressure FROM pressure_records')
-
-        # SQL запити для різних періодів, словник SQL запитів
-        sql_queries = {
-            'week': '''
-                   SELECT pressure 
-                   FROM pressure_records 
-                   WHERE date >= datetime('now', '-7 days')
-               ''',
-            'month': '''
-                   SELECT pressure 
-                   FROM pressure_records 
-                   WHERE date >= datetime('now', '-30 days')
-               ''',
-            'all': 'SELECT pressure FROM pressure_records'
-        }
-
-        # Вибираємо потрібний запит
-        # sql_queries['all'] - це значення за замовчуванням в методі get() якщо значення не передано
-        query = sql_queries.get(period, sql_queries['all'])
-        cursor.execute(query)
-
-        records = cursor.fetchall() # [('150/80/77',), ('125/85/90',), ('125/85/75',)....] масив кортеджів
-
-        total = len(records)
-        critical = 0
-        # `(pressure,)` - це розпакування кортежу. Кома після `pressure` вказує Python, що це саме кортеж з одним елементом
-        for (pressure,) in records:
-            sys, dia, pulse = map(int, pressure.split('/')) # `map(int, перетворить три рядка на числа бо split('/') верне масив з трех рядків
-            if sys > 180 or dia > 120 or pulse > 140:
-                critical += 1
-
-        if total > 0:
-            percentage = (critical / total) * 100
-            # знову словник для message
-            period_text = {
-                'week': 'за тиждень',
-                'month': 'за місяць',
-                'all': 'за весь період'
-            }.get(period, 'за весь період')
-
-            message = (f"Статистика {period_text}:\n"
-                       f"Загальна кількість вимірювань: {total}\n"
-                       f"Кількість критичних показників: {critical}\n"
-                       f"Відсоток критичних показників: {percentage:.1f}%\n")
-
-            if critical >= 2:
-                message += "\nРекомендуємо звернутися до лікаря!"
-
-            messagebox.showinfo("Статистика тиску", message)
-        else:
-            messagebox.showinfo("Статистика тиску", "Немає записів для аналізу")
-
-
-    def get_biggest_s(self):
-        cursor = self.conn.cursor()
-        sql_query = '''SELECT date, pressure 
-        FROM pressure_records 
-        ORDER BY CAST(substr(pressure, 1, instr(pressure, '/') - 1) AS INTEGER) DESC
-         '''
-
-        cursor.execute(sql_query)
-        #res = cursor.fetchall()
-        res = cursor.fetchone()
-        messagebox.showinfo("Найбільший ситоличний", str(res))
 
 
 
