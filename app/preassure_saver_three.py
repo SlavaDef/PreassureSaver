@@ -66,12 +66,16 @@ class PressureApp:
 
         # Створюємо фрейм для кнопок
         button_frame = ttk.Frame(input_frame)
-
         button_frame.grid(row=2, column=0, columnspan=8, pady=5)
 
         # Створюємо фрейм для кнопок статистики
         stat_button_frame = ttk.Frame(input_frame)
         stat_button_frame.grid(row=3, column=0, columnspan=8, pady=5)
+
+        style = ttk.Style() # стилі для кнопок, далі цей стиль додаемо до налаштувань самої кнопки
+        style.configure('Custom.TButton', buttoncolor='sky blue', background='green', foreground='black',  borderwidth=5,
+        relief="raised", padding=(10, 5))
+
 
         # Поля введення з шрифтом
         ttk.Label(input_frame, text="Систолічний:").grid(row=0, column=0, padx=5) # рядок, колонка , відстань по У
@@ -96,10 +100,10 @@ class PressureApp:
         self.notes_entry.grid(row=1, column=1, columnspan=5, padx=5, pady=5)
 
         # Розміщуємо кнопки у фреймі
-        save_button = ttk.Button(button_frame, text="Зберегти", command=self.save_pressure)
+        save_button = ttk.Button(button_frame, text="Зберегти", style='Custom.TButton', command=self.save_pressure)
         save_button.pack(side='left', padx=5)
 
-        edit_button = ttk.Button(button_frame, text="Редагувати", command=self.edit_selected)
+        edit_button = ttk.Button(button_frame, text="Редагувати", style='Custom.TButton', command=self.edit_selected)
         edit_button.pack(side='left', padx=5)
 
         #statistic_button = ttk.Button(button_frame, text="Статистика", command=self.get_pressure_statistics)
