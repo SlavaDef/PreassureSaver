@@ -30,7 +30,7 @@ class PressureApp:
         self.update_table()
 
         # Перевірка критичних показників при запуску
-        #self.service.check_weekly_critical_pressure()
+        self.service.check_weekly_critical_pressure()
 
 
     def create_table(self):
